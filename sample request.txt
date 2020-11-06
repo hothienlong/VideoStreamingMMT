@@ -1,0 +1,2 @@
+python Server.py 1025
+python ClientLauncher.py DESKTOP-QEABKE7 1025 5008 video.mjpeg
