@@ -1,7 +1,11 @@
 from tkinter import *
 import tkinter.messagebox
 from PIL import Image, ImageTk
-import socket, threading, sys, traceback, os
+import socket
+import threading
+import sys
+import traceback
+import os
 
 from RtpPacket import RtpPacket
 
@@ -68,7 +72,8 @@ class Client:
 
         # Create a label to display the movie
         self.label = Label(self.master, height=19)
-        self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=5, pady=5)
+        self.label.grid(row=0, column=0, columnspan=4,
+                        sticky=W + E + N + S, padx=5, pady=5)
 
     def setupMovie(self):
         """Setup button handler."""
@@ -80,10 +85,13 @@ class Client:
         self.sendRtspRequest(self.TEARDOWN)
         # self.handler()
         self.master.destroy()  # Close the gui window
-        os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT)  # Delete the cache image from video
+        # ?? Delete the cache image from video
+        os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT)
+        # ???
         rate = float(self.counter / self.frameNbr)
-        print('-' * 60 + "\nRTP Packet Loss Rate :" + str(rate) + "\n" + '-' * 60)
-        sys.exit(0)
+        print('-' * 60 + "\nRTP Packet Loss Rate :" +
+              str(rate) + "\n" + '-' * 60)  # ???
+        sys.exit(0)  # ???
 
     def pauseMovie(self):
         """Pause button handler."""
@@ -96,8 +104,8 @@ class Client:
             # Create a new thread to listen for RTP packets
             print("Playing Movie")
             threading.Thread(target=self.listenRtp).start()
-            self.playEvent = threading.Event()
-            self.playEvent.clear()
+            self.playEvent = threading.Event()  # ???
+            self.playEvent.clear()  # ???
             self.sendRtspRequest(self.PLAY)
 
     # sử dụng khi PLAY (nhận từng frame và hiển thị ra video)
@@ -106,10 +114,12 @@ class Client:
             try:
                 data, addr = self.rtpSocket.recvfrom(20480)
 
+
                 if data:
                     rtpPacket = RtpPacket()
                     rtpPacket.decode(data)
-                    print("||Received Rtp Packet #" + str(rtpPacket.seqNum()) + "|| ")
+                    print("||Received Rtp Packet #" +
+                          str(rtpPacket.seqNum()) + "|| ")
 
                     try:
                         if self.frameNbr + 1 != rtpPacket.seqNum():
@@ -125,7 +135,9 @@ class Client:
 
                     if currFrameNbr > self.frameNbr:  # Discard the late packet
                         self.frameNbr = currFrameNbr
-                        self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
+                        self.updateMovie(self.writeFrame(
+                            rtpPacket.getPayload()))
+                            
 
             except:
                 # Stop listening upon requesting PAUSE or TEARDOWN
@@ -164,7 +176,8 @@ class Client:
     def updateMovie(self, imageFile):
         """Update the image file as video frame in the GUI."""
         try:
-            photo = ImageTk.PhotoImage(Image.open(imageFile))  # stuck here !!!!!!
+            photo = ImageTk.PhotoImage(
+                Image.open(imageFile))  # stuck here !!!!!!
         except:
             print("photo error")
             print('-' * 60)
@@ -181,7 +194,8 @@ class Client:
         try:
             self.rtspSocket.connect((self.serverAddr, self.serverPort))
         except:
-            tkinter.messagebox.showwarning('Connection Failed', 'Connection to \'%s\' failed.' % self.serverAddr)
+            tkinter.messagebox.showwarning(
+                'Connection Failed', 'Connection to \'%s\' failed.' % self.serverAddr)
 
     # --send -> recvReply -> phân tích reply -> open port
     # sử dụng mỗi khi bấm SETUP, PLAY, PAUSE, TEARDOWN
@@ -200,7 +214,7 @@ class Client:
 
             # Write the RTSP request to be sent.
             # request = ...
-            request = "SETUP " + str(self.fileName) + "\n" + str(self.rtspSeq) + "\n" + " RTSP/1.0 RTP/UDP " + str(
+            request = "SETUP " + str(self.fileName) + " RTSP/1.0" + "\n" + "CSeq: " + str(self.rtspSeq) + "\n" + "Transport: " + "RTP/UDP; " + "client_port= " + str(
                 self.rtpPort)
 
             self.rtspSocket.send(request.encode('utf-8'))
@@ -215,7 +229,8 @@ class Client:
             self.rtspSeq = self.rtspSeq + 1
             # Write the RTSP request to be sent.
             # request = ...
-            request = "PLAY " + "\n" + str(self.rtspSeq)
+            request = "PLAY " + str(self.fileName) + " RTSP/1.0" + "\n" + "CSeq: " + str(
+                self.rtspSeq) + "\n" + "Session: " + str(self.rtspSeq)
 
             self.rtspSocket.send(request.encode('utf-8'))
             print('-' * 60 + "\nPLAY request sent to Server...\n" + '-' * 60)
@@ -230,7 +245,8 @@ class Client:
             self.rtspSeq = self.rtspSeq + 1
             # Write the RTSP request to be sent.
             # request = ...
-            request = "PAUSE " + "\n" + str(self.rtspSeq)
+            request = "PAUSE " + str(self.fileName) + " RTSP/1.0" + "\n" + "CSeq: " + str(
+                self.rtspSeq) + "\n" + "Session: " + str(self.rtspSeq)
             self.rtspSocket.send(request.encode('utf-8'))
             print('-' * 60 + "\nPAUSE request sent to Server...\n" + '-' * 60)
             # Keep track of the sent request.
@@ -246,7 +262,8 @@ class Client:
             self.rtspSeq = self.rtspSeq + 1
             # Write the RTSP request to be sent.
             # request = ...
-            request = "TEARDOWN " + "\n" + str(self.rtspSeq)
+            request = "TEARDOWN " + str(self.fileName) + " RTSP/1.0" + "\n" + "CSeq: " + str(
+                self.rtspSeq) + "\n" + "Session: " + str(self.rtspSeq)
             self.rtspSocket.send(request.encode('utf-8'))
             print('-' * 60 + "\nTEARDOWN request sent to Server...\n" + '-' * 60)
             # Keep track of the sent request.
@@ -347,7 +364,8 @@ class Client:
             print("Bind RtpPort Success")
 
         except:
-            tkinter.messagebox.showwarning('Connection Failed', 'Connection to rtpServer failed...')
+            tkinter.messagebox.showwarning(
+                'Connection Failed', 'Connection to rtpServer failed...')
 
     # cửa sổ tắt
     def handler(self):
