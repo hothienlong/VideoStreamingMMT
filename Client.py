@@ -34,7 +34,7 @@ class Client:
         self.fileName = filename
         self.rtspSeq = 0
         self.sessionId = 0
-        self.requestSent = -1
+        self.requestSent = -1 #lưu request đang sent để server reply
         self.teardownAcked = 0
         self.connectToServer()
         self.frameNbr = 0
@@ -108,14 +108,15 @@ class Client:
 
                 if data:
                     rtpPacket = RtpPacket()
-                    rtpPacket.decode(data)
+                    rtpPacket.decode(data) #biến data thành header với payload
                     print("||Received Rtp Packet #" + str(rtpPacket.seqNum()) + "|| ")
 
                     try:
                         if self.frameNbr + 1 != rtpPacket.seqNum():
                             self.counter += 1
-                            print('!' * 60 + "\nPACKET LOSS\n" + '!' * 60)
+                            print('!' * 60 + "\nPACKETz LOSS\n" + '!' * 60)
                         currFrameNbr = rtpPacket.seqNum()
+
                     # version = rtpPacket.version()
                     except:
                         print("seqNum() error")
@@ -193,7 +194,7 @@ class Client:
 
         # Setup request
         if requestCode == self.SETUP and self.state == self.INIT:
-            threading.Thread(target=self.recvRtspReply).start()
+            threading.Thread(target=self.recvRtspReply).start() #tạo 1 thread song song cho server liên tục lắng nghe request và reply
             # Update RTSP sequence number.
             # ...
             self.rtspSeq = 1
@@ -337,7 +338,8 @@ class Client:
         # Bind the socket to the address using the RTP port given by the client user
         # ...
         #		except:
-        #			tkMessageBox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' %self.rtpPort)
+        #			tkMessageBox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' %self.rtpPort) #trường hợp 2 client cùng port
+
 
         try:
             # self.rtpSocket.connect(self.serverAddr,self.rtpPort)

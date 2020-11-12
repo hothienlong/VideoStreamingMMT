@@ -41,8 +41,8 @@ class ServerWorker:
     def processRtspRequest(self, data):
         """Process RTSP request sent from the client."""
         # Get the request type
-        request = data.split('\n') #[SETUP video.mjpeg],[1],[RTSP/1.0 RTP/UDP 5008]
-        line1 = request[0].split(' ') #SETUP, video.mjpeg
+        request = data.split('\n') #[SETUP video.mjpeg RTSP/1.0],[1],[RTP/UDP 5008]
+        line1 = request[0].split(' ') #SETUP, video.mjpeg, RTSP/1.0
         requestType = line1[0] #SETUP
 
         # Get the media file name
