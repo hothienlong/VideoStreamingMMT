@@ -77,9 +77,12 @@ class Client:
 	
 	def exitClient(self):
 		"""Teardown button handler."""
-		self.sendRtspRequest(self.TEARDOWN)		
-		self.master.destroy() # Close the gui window
-		os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT) # Delete the cache image from video
+
+		self.sendRtspRequest(self.TEARDOWN)	
+		self.master.destroy() # Close the gui window	
+		print("--Wait for delete cache image--")
+		time.sleep(5) # đợi write xong file image cache cuối mới xóa, ko sẽ bị race condition	
+		os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT) # Xóa file cache còn sót lại khi playing đang write file cuối
 
 	def pauseMovie(self):
 		"""Pause button handler."""
@@ -112,18 +115,21 @@ class Client:
 					if currFrameNbr > self.frameNbr: # Discard the late packet
 						self.count_loss_frame += currFrameNbr - self.frameNbr - 1
 						self.frameNbr = currFrameNbr
-						self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
+						self.updateMovie(self.writeFrame(rtpPacket.getPayload())) 
+						# PLAYING -> TEARDOWN: Exception the process cannot access 
+						# the file because it is being used by another process: 'cache-[...].jpg'
+						# vì bên này đang write image cache mà bên kia teardown xóa file image cache
 			except:
-				# # Stop listening upon requesting PAUSE or TEARDOWN
-				# if self.playEvent.isSet(): 
-				# 	break
+				# Stop listening upon requesting PAUSE or TEARDOWN
+				if self.playEvent.isSet(): 
+					break
 				
-				# # Upon receiving ACK for TEARDOWN request,
-				# # close the RTP socket
-				# if self.teardownAcked == 1:
-				# 	self.rtpSocket.shutdown(socket.SHUT_RDWR)
-				# 	self.rtpSocket.close()
-				# 	break
+				# Upon receiving ACK for TEARDOWN request,
+				# close the RTP socket
+				if self.teardownAcked == 1: #??
+					self.rtpSocket.shutdown(socket.SHUT_RDWR)
+					self.rtpSocket.close()
+					break
 				break
 		packet_loss_rate = float(self.count_loss_frame / self.frameNbr)
 		print("\n--> RTP Packet Loss Rate : " + str(packet_loss_rate))
@@ -132,7 +138,9 @@ class Client:
 		print("Video data length: " + str(self.total_data) + " bytes")
 		print("Total time: " + str(self.total_time))	
 		print("Video data rate: " + str(self.total_data / self.total_time / 1024) + " bytes/second")	
+		# self.exitClient()
 		
+
 	def writeFrame(self, data):
 		"""Write the received frame to a temp image file. Return the image file."""
 		cachename = CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT
