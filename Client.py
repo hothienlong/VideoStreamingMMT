@@ -39,14 +39,16 @@ class Client:
 		self.frameNbr = 0
 		self.total_time = 0
 		self.total_data = 0
+		if(self.state == self.INIT):
+			self.sendRtspRequest(self.SETUP)
 		
 	def createWidgets(self):
 		"""Build GUI."""
-		# Create Setup button
-		self.setup = Button(self.master, width=20, padx=3, pady=3)
-		self.setup["text"] = "Setup"
-		self.setup["command"] = self.setupMovie
-		self.setup.grid(row=1, column=0, padx=2, pady=2)
+		# # Create Setup button
+		# self.setup = Button(self.master, width=20, padx=3, pady=3)
+		# self.setup["text"] = "Setup"
+		# self.setup["command"] = self.setupMovie
+		# self.setup.grid(row=1, column=0, padx=2, pady=2)
 		
 		# Create Play button		
 		self.start = Button(self.master, width=20, padx=3, pady=3)
@@ -83,6 +85,7 @@ class Client:
 		print("--Wait for delete cache image--")
 		time.sleep(5) # đợi write xong file image cache cuối mới xóa, ko sẽ bị race condition	
 		os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT) # Xóa file cache còn sót lại khi playing đang write file cuối
+		print("--Finish--")
 
 	def pauseMovie(self):
 		"""Pause button handler."""
@@ -113,7 +116,7 @@ class Client:
 					print("Current Seq Num: " + str(currFrameNbr))
 					print("Total loss frame: " + str(self.count_loss_frame))					
 					if currFrameNbr > self.frameNbr: # Discard the late packet
-						self.count_loss_frame += currFrameNbr - self.frameNbr - 1
+						self.count_loss_frame += currFrameNbr - (self.frameNbr + 1)
 						self.frameNbr = currFrameNbr
 						self.updateMovie(self.writeFrame(rtpPacket.getPayload())) 
 						# PLAYING -> TEARDOWN: Exception the process cannot access 
